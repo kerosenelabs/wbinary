@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -639,6 +640,137 @@ namespace wbinary.Core
                     return DateTime.UnixEpoch.AddSeconds(reader.ReadInt64());
                 },
                 typeof(DateTime));
+
+                //Enum
+                RegisterResolve((obj, writer) =>
+                {
+                    object underlyingValue = Convert.ChangeType(obj, Enum.GetUnderlyingType(obj.GetType()));
+                    WriteValue(writer, underlyingValue, true);
+                },
+                (type, reader) =>
+                {
+                    var underlyingType = Enum.GetUnderlyingType(type);
+                    var obj = ReadValue(reader, underlyingType, true);
+                    return obj;
+                },
+                typeof(Enum));
+
+                //TimeSpan
+                RegisterResolve((obj, writer) =>
+                {
+                    var ts = (TimeSpan)obj;
+                    writer.Write(ts.TotalMilliseconds);
+                },
+                (type, reader) =>
+                {
+                    var tsRaw = reader.ReadDouble();
+                    return TimeSpan.FromMilliseconds(tsRaw - 1);
+                },
+                typeof(TimeSpan));
+
+                //DateTimeOffset
+                RegisterResolve((obj, writer) =>
+                {
+                    var dto = (DateTimeOffset)obj;
+                    var ticks = dto.Ticks;
+                    var offset = dto.Offset.Ticks;
+                    writer.Write(ticks);
+                    writer.Write(offset);
+                },
+                (type, reader) =>
+                {
+                    var ticks = reader.ReadInt64();
+                    var offset = reader.ReadInt64();
+                    return new DateTimeOffset(ticks, new TimeSpan(offset));
+                },
+                typeof(DateTimeOffset));
+
+                //BigInteger
+                RegisterResolve((obj, writer) =>
+                {
+                    var bi = (BigInteger)obj;
+                    var arr = bi.ToByteArray();
+                    writer.Write(arr.Length);
+                    writer.Write(arr);
+                },
+                (type, reader) =>
+                {
+                    var length = reader.ReadInt32();
+                    var arr = reader.ReadBytes(length);
+                    return new BigInteger(arr);
+                },
+                typeof(BigInteger));
+
+                //Complex
+                RegisterResolve((obj, writer) =>
+                {
+                    var complex = (Complex)obj;
+                    writer.Write(complex.Real);
+                    writer.Write(complex.Imaginary);
+                },
+                (type, reader) =>
+                {
+                    var real = reader.ReadDouble();
+                    var imaginary = reader.ReadDouble();
+                    return new Complex(real, imaginary);
+                },
+                typeof(Complex));
+
+                //Guid
+                RegisterResolve((obj, writer) =>
+                {
+                    var guid = (Guid)obj;
+                    var arr = guid.ToByteArray();
+                    writer.Write(arr.Length);
+                    writer.Write(arr);
+                },
+                (type, reader) =>
+                {
+                    var length = reader.ReadInt32();
+                    var arr = reader.ReadBytes(length);
+                    return new Guid(arr);
+                },
+                typeof(Guid));
+
+                //Uri
+                RegisterResolve((obj, writer) =>
+                {
+                    var uri = (Uri)obj;
+                    writer.Write(uri.AbsoluteUri);
+                },
+                (type, reader) =>
+                {
+                    return new Uri(reader.ReadString());
+                },
+                typeof(Uri));
+
+                //Stack
+                RegisterResolve((obj, writer) =>
+                {
+                    var pi = obj.GetType().GetProperty("Count");
+                    var length = (int)pi.GetValue(obj);
+                    var arr = Array.CreateInstance(obj.GetType().GetGenericArguments()[0], length);
+                    obj.InvokeMethod("CopyTo", arr, 0);
+                    Array.Reverse(arr);
+                    writer.Write(length);
+                    for(int i = 0; i < length; i++)
+                    {
+                        QC.WriteVarBuffer(QC.ConvertToBinary(arr.GetValue(i), i), writer);
+                    }
+                },
+                (type, reader) =>
+                {
+                    var length = reader.ReadInt32();
+                    var itemType = type.GetGenericArguments()[0];
+                    var obj = type.CreateInstance();
+                    for (int i = 0; i < length; i++)
+                    {
+                        obj.InvokeMethod("Push", QC.ConvertFromBinary(QC.ReadVarBuffer(reader), itemType));
+                    }
+                    
+                    return obj;
+                },
+                typeof(Stack<>));
             }
 
             internal static ResolveTypeWrite? FindWriterResolve(Type type)
@@ -666,12 +798,18 @@ namespace wbinary.Core
             {
                 foreach (var x in allowTypes)
                 {
+                    
                     if(x.Equals(type))
                         return true;
                     else if (x.IsAssignableFrom(type))
                         return true;
                     else if (type.IsSubclassOf(x))
                         return true;
+                    else if (type.IsGenericType && x.IsAssignableFrom(type.GetGenericTypeDefinition()))
+                    {
+                        return true;
+                    }
+                        
                 }
                 return false;
             }

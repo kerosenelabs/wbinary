@@ -1,4 +1,5 @@
-﻿using wbinary.Core;
+﻿using System.Numerics;
+using wbinary.Core;
 
 namespace ConsoleApp1
 {
@@ -6,11 +7,25 @@ namespace ConsoleApp1
     {
         static void Main(string[] args)
         {
-            //File.WriteAllBytes(@"C:\Users\kyrosine\Documents\test.bin", QC.Serialize("Тестовое сообщение"));
+            var rx = new Stack<int>();
 
-            var bf = File.ReadAllBytes(@"C:\Users\kyrosine\Documents\test.bin");
-            Console.WriteLine(bf.Length);
-            Console.WriteLine(QC.Deserialize<string>(bf));
+            rx.Push(1);
+            rx.Push(2);
+            rx.Push(3);
+            rx.Push(0);
+            rx.Push(1);
+            rx.Pop();
+
+            var bf = QC.Serialize(rx);
+            var tx = QC.Deserialize<Stack<int>>(bf);
+            Console.WriteLine(tx.ToString());
         }
+    }
+
+    public enum SomeEnum : byte
+    {
+        One,
+        Two, 
+        Three
     }
 }
