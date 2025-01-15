@@ -470,7 +470,7 @@ namespace wbinary.Core
                     {
                         QC.WriteVarBuffer(QC.ConvertToBinary(node.Value, node.Ptr), writer);
                     }
-
+                    //buffer of object
                     var buffering = obj as IBuffering;
                     var bf = new BufferNumerable();
                     buffering.WriteToBuffer(bf);
@@ -492,6 +492,8 @@ namespace wbinary.Core
                         var val = QC.ConvertFromBinary(QC.ReadVarBuffer(reader), node.ValueType);
                         node.SetValue(obj, val);
                     }
+
+                    //buffer of object
                     var bf = new BufferNumerable();
                     var buffering = obj as IBuffering;
                     //count
