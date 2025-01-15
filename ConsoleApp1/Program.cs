@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using wbinary.Core;
 
 namespace ConsoleApp1
@@ -7,25 +8,25 @@ namespace ConsoleApp1
     {
         static void Main(string[] args)
         {
-            var rx = new Stack<int>();
-
-            rx.Push(1);
-            rx.Push(2);
-            rx.Push(3);
-            rx.Push(0);
-            rx.Push(1);
-            rx.Pop();
+            var rx = Tuple.Create("suka", 123, 1.0f);
 
             var bf = QC.Serialize(rx);
-            var tx = QC.Deserialize<Stack<int>>(bf);
+            Console.WriteLine(bf.Length);
+            var tx = QC.Deserialize<Tuple<string, int, float>>(bf);
             Console.WriteLine(tx.ToString());
+        }
+
+        public static (string Str, int Ptr) Cont()
+        {
+            return ("osx", 123);
         }
     }
 
     public enum SomeEnum : byte
     {
         One,
-        Two, 
+        Two,
         Three
     }
+
 }
