@@ -5,6 +5,30 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>wbinary</Title>
+    <Authors>kerosene labs</Authors>
+    <Description>A lightweight library for serializing objects into binary format, an array of bytes.</Description>
+    <Copyright>Copyright (c) 2025 kerosene labs, Artem Sizov</Copyright>
+    <PackageProjectUrl>https://github.com/kerosenelabs/wbinary</PackageProjectUrl>
+    <PackageIcon>liblogo.png</PackageIcon>
+    <PackageTags>binary, formatter, binartformatter, quickc</PackageTags>
+    <PackageOutputPath>$(OutputPath)</PackageOutputPath>
+    <AssemblyVersion>0.11.0.0</AssemblyVersion>
+	<VersionPrefix>0.12</VersionPrefix>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\liblogo.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>
