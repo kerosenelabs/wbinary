@@ -1,6 +1,7 @@
 
 ---
-
+[[#FastUsage]]
+[[#Supported types]]
 ### *Fast usage*
 > *Быстрое использование*
 
@@ -16,23 +17,34 @@ var obj = QC.Deserialize<T>(binary);
 ### *Supported types*
 >*Поддерживаемые типы*
 
-| Type                         | Support | Version | Inaccuracy |
-| ---------------------------- | ------- | ------- | ---------- |
-| All primitives               | ✅       | 0.12    |            |
-| Nullables (int?, byte?, ...) | ✅       | 0.12    |            |
-| Array                        | ✅       | 0.12    |            |
-| Dictionary                   | ✅       | 0.12    |            |
-| List                         | ✅       | 0.12    |            |
-| DateTime                     | ✅       | 0.12    |            |
-| IBuffering classes           | ✅       | 0.12    |            |
-| Enum's                       | ✅       | 0.13    |            |
-| TimeSpan                     | ✅       | 0.13    | ~0.0000001 |
-| DateTimeOffset               | ✅       | 0.13    |            |
-| BigInteger                   | ✅       | 0.13    |            |
-| Complex                      | ✅       | 0.13    |            |
-| Guid                         | ✅       | 0.13    |            |
-| Uri                          | ✅       | 0.13    |            |
-| Stack                        | ✅       | 0.13    |            |
+| Type                        | Support | Version | Inaccuracy             |
+| --------------------------- | ------- | ------- | ---------------------- |
+| All primitives              | ✅       | 0.12    |                        |
+| Nullable (int?, byte?, ...) | ✅       | 0.12    |                        |
+| Array                       | ✅       | 0.12    |                        |
+| Dictionary<,>               | ✅       | 0.12    |                        |
+| List<>                      | ✅       | 0.12    |                        |
+| DateTime                    | ✅       | 0.12    |                        |
+| IBuffering classes          | ✅       | 0.12    |                        |
+| Enum                        | ✅       | 0.13    |                        |
+| TimeSpan                    | ✅       | 0.13    | ~0.0000001             |
+| DateTimeOffset              | ✅       | 0.13    |                        |
+| BigInteger                  | ✅       | 0.13    |                        |
+| Complex                     | ✅       | 0.13    |                        |
+| Guid                        | ✅       | 0.13    |                        |
+| Uri                         | ✅       | 0.13    |                        |
+| Stack                       | ✅       | 0.13    |                        |
+| Vector2                     | ✅       | 0.14    |                        |
+| Vector3                     | ✅       | 0.14    |                        |
+| Vector4                     | ✅       | 0.14    |                        |
+| Vector<>                    | ✅       | 0.14    |                        |
+| Matrix3x2                   | ✅       | 0.14    |                        |
+| Matrix4x4                   | ✅       | 0.14    |                        |
+| Plane                       | ✅       | 0.14    |                        |
+| Quaternion                  | ✅       | 0.14    |                        |
+| TimeZoneInfo                | ✅       | 0.14    | ~0.0000001 in TimeSpan |
+| ValueTuple<>                | ✅       | 0.14    |                        |
+| Tuple<>                     | ✅       | 0.14    |                        |
 ###### If the required data types are missing in the latest version, it is possible to add them yourself.
 > Если в последней версии отсутствуют требуемые типы данных, есть возможность добавить их самостоятельно.
 ```csharp
