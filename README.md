@@ -4,8 +4,8 @@
 ### *Fast usage*
 > *Быстрое использование*
 
-###### For quick use, the static QC (Quick) class from the webinary.Core namespace is used. It also allows you to significantly compress the byte array using Deflate.
-> Для быстрого использования используется статический класс QC (Quick) из пространства имен webinary.Core. Это также позволяет значительно сжать массив байт посредством Deflate.
+###### For quick use, the static QC (QuickC) class from the webinary.Core namespace is used. It also allows you to significantly compress the byte array using Deflate.
+> Для быстрого использования используется статический класс QC (QuickC) из пространства имен webinary.Core. Это также позволяет значительно сжать массив байт посредством Deflate.
 ```csharp
 byte[] binary = QC.Serialize(<object>);
 var obj = QC.Deserialize<T>(binary);
