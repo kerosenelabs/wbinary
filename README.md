@@ -4,10 +4,10 @@
 ### *Fast usage*
 > *Быстрое использование*
 
-###### For quick use, the static QC (QuickC) class from the webinary.Core namespace is used. It also allows you to significantly compress the byte array using Deflate.
-> Для быстрого использования используется статический класс QC (QuickC) из пространства имен webinary.Core. Это также позволяет значительно сжать массив байт посредством Deflate.
+###### For quick use, the static QC (Quick) class from the wbinary.Core namespace is used. It also allows you to significantly compress the byte array using Deflate.
+> Для быстрого использования используется статический класс QC (Quick) из пространства имен wbinary.Core. Это также позволяет значительно сжать массив байт посредством Deflate.
 ```csharp
-byte[] binary = QC.Serialize(<object>);
+byte[] binary = QC.Serialize(<object>, <bool = true>);
 var obj = QC.Deserialize<T>(binary);
 ```
 
@@ -16,14 +16,23 @@ var obj = QC.Deserialize<T>(binary);
 ### *Supported types*
 >*Поддерживаемые типы*
 
-| Type                              | Support | Version |
-| --------------------------------- | ------- | ------- |
-| All primitives with nullables | ✅       | 0.12    |
-| IBuffering                        | ✅       | 0.12    |
-| Array with nullables          | ✅       | 0.12    |
-| Dictionary                        | ✅       | 0.12    |
-| List                              | ✅       | 0.12    |
-| DateTime                          | ✅       | 0.12    |
+| Type                         | Support | Version | Inaccuracy |
+| ---------------------------- | ------- | ------- | ---------- |
+| All primitives               | ✅       | 0.12    |            |
+| Nullables (int?, byte?, ...) | ✅       | 0.12    |            |
+| Array                        | ✅       | 0.12    |            |
+| Dictionary                   | ✅       | 0.12    |            |
+| List                         | ✅       | 0.12    |            |
+| DateTime                     | ✅       | 0.12    |            |
+| IBuffering classes           | ✅       | 0.12    |            |
+| Enum's                       | ✅       | 0.13    |            |
+| TimeSpan                     | ✅       | 0.13    | ~0.0000001 |
+| DateTimeOffset               | ✅       | 0.13    |            |
+| BigInteger                   | ✅       | 0.13    |            |
+| Complex                      | ✅       | 0.13    |            |
+| Guid                         | ✅       | 0.13    |            |
+| Uri                          | ✅       | 0.13    |            |
+| Stack                        | ✅       | 0.13    |            |
 ###### If the required data types are missing in the latest version, it is possible to add them yourself.
 > Если в последней версии отсутствуют требуемые типы данных, есть возможность добавить их самостоятельно.
 ```csharp
@@ -259,18 +268,20 @@ Console.WriteLine(tObjTx.B != null ? tObjTx.B : "object B is null"); //object B 
 ###### Since binary formalization involves writing binary values as an array of bytes, it was necessary to use Deflate compression, which significantly reduces the size of the serialized data, but if you do not need compression, you can use the following methods:
 > Так как бинарная формализация подразумевает собой запись бинарных значений в виде массива байт, соответственно потребовалось использовать сжатие Deflate, которое значительно снижает размер сериализуемых данных, но если вам не требуется сжатие, вы можете воспользоваться следующими способами:
 ```csharp
+//v0.13 revision
+
 //serialize without compression
-byte[] raw = QC.ConvertToBinary(testClass, 0).ToBinary(); //raw size - 117 bytes
+byte[] raw = QC.Serialize(obj, false); //raw size - 124 bytes
 //deserialize without compression
-TestClass obj = QC.ConvertFromBinary<TestClass>(VarBuffer.FromBinary(raw));
+TestClass obj = QC.Deserialize<TestClass>(raw);
 
 //serialize with compression
-byte[] raw = QC.Serialize(obj); //raw size - 55
+byte[] raw = QC.Serialize(obj); //raw size - 62
 //deserialize with compression
 TestClass obj = QC.Deserialize<TestClass>(raw);
 ```
-###### The example above used the most recent implementation of TestClass, which was listed above. The size of the compressed array is 55 bytes, the size of the uncompressed array is 117 bytes, the difference is 62 bytes due to the fact that most values occupy the array with zeros, etc.
-> В примере выше использовалась самая последняя реализация TestClass, которая приводилась выше. Размер сжатого массива 55 байт, размер несжатого массива 117 байт,  разница в 62 байта из-за того, что большинство значений занимают массив нулями и т.д.
+###### The example above used the most recent implementation of TestClass, which was listed above. The size of the compressed array is 62 bytes, the size of the uncompressed array is 124 bytes, the difference is 62 bytes due to the fact that most values occupy the array with zeros, etc.
+> В примере выше использовалась самая последняя реализация TestClass, которая приводилась выше. Размер сжатого массива 62 байт, размер несжатого массива 124 байт,  разница в 62 байта из-за того, что большинство значений занимают массив нулями и т.д.
 
 
 ---
@@ -284,8 +295,8 @@ TestClass obj = QC.Deserialize<TestClass>(raw);
 var buff = QC.Serialize(rx);
 var tx = QC.Deserialize<TestClass>(buff);
 //without compression
-var buff2 = QC.ConvertToBinary(rx, 0).ToBinary();
-var tx2 = QC.ConvertFromBinary<TestClass>(VarBuffer.FromBinary(buff2));
+var buff2 = QC.Serialize(rx, false);
+var tx2 = QC.Deserialize<TestClass>(buff2);
 ```
 
 | Ms   | Ticks | Type           |
@@ -334,3 +345,11 @@ var tx2 = QC.ConvertFromBinary<TestClass>(VarBuffer.FromBinary(buff2));
             }
         }
 ```
+
+---
+
+### Update review 0.13
+> *Обзор обновления 0.13*
+
+###### Update 0.13 is complementary: support for new types has been added, a version and compression header has been added (for serialized data based on version 0.12 compression is set by default), the content header occupies 8 bytes.
+> Обновление 0.13 несет дополняющий характер: добавлена поддержка новых типов, добавлен заголовок версии и компрессии (для сериализованных данных на основе версии 0.12 компрессия установлена по умолчанию), заголовок с контентом занимает 8 байт.
