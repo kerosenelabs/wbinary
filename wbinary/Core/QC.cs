@@ -13,9 +13,20 @@ namespace wbinary.Core
 {
     public static class QC
     {
-        public static byte[] Serialize<T>(T obj)
+        private const byte Major = 0;
+        private const byte Minor = 13;
+        private const byte pattern1 = 0x00;
+        private const byte pattern2 = 0xFF;
+        private const byte pattern3 = 0x00;
+        private const byte pattern4 = 0xFF;
+        private const byte pattern5 = 0x00;
+        public static string VersionPrefix => $"{Major}.{Minor}";
+        public static byte[] Serialize<T>(T obj, bool useCompression = true)
         {
-            return ConvertToBinary(obj, 0).ToBinary().Zip();
+            var bytes = ConvertToBinary(obj, 0).ToBinary();
+            if (useCompression)
+                bytes = bytes.Zip();
+            return ConcatV(bytes, useCompression);
         }
         public static async Task<byte[]> SerializeAsync<T>(T obj)
         {
@@ -26,7 +37,18 @@ namespace wbinary.Core
         }
         public static T? Deserialize<T>(byte[] source)
         {
-            return ConvertFromBinary<T>(VarBuffer.FromBinary(source.Unzip()));
+            var vnfo = TryDecV(source);
+            if (vnfo == null)
+                return ConvertFromBinary<T>(VarBuffer.FromBinary(source.Unzip()));
+            if(vnfo.Major > Major)
+                throw new InvalidOperationException($"Requires QuickC version '{vnfo.Major}.{vnfo.Minor}', current version '{VersionPrefix}'");
+            if (vnfo.Major == Major && vnfo.Minor > Minor)
+                throw new InvalidOperationException($"Requires QuickC version '{vnfo.Major}.{vnfo.Minor}', current version '{VersionPrefix}'");
+            source = TrimArray(source, 8, source.Length - 8);
+            if(vnfo.IsCompressed)
+                return ConvertFromBinary<T>(VarBuffer.FromBinary(source.Unzip()));
+            else
+                return ConvertFromBinary<T>(VarBuffer.FromBinary(source));
         }
         public static async Task<T?> DeserializeAsync<T>(byte[] source)
         {
@@ -34,6 +56,51 @@ namespace wbinary.Core
             {
                 return Deserialize<T>(source);
             });
+        }
+
+        private static byte[] GenerateArrV(bool useCompr)
+        {
+            var vnfo = new Vnfo
+            {
+                Major = Major,
+                Minor = Minor,
+                IsCompressed = useCompr
+            };
+            var nfo = QC.ConvertToBinary(vnfo, -1).Source.ToArray();
+            return nfo;
+        }
+        private static byte[] ConcatV(byte[] source, bool useCompr)
+        {
+            byte[] version = GenerateArrV(useCompr);
+            var result = new byte[source.Length + version.Length + 5];
+            result[0] = pattern1;
+            result[1] = pattern2;
+            result[2] = pattern3;
+            result[3] = pattern4;
+            result[4] = pattern5;
+            version.CopyTo(result, 5);
+            source.CopyTo(result, version.Length + 5);
+            return result;
+        }
+        private static Vnfo TryDecV(byte[] raw)
+        {
+            if (raw[0] == pattern1 && raw[1] == pattern2 && raw[2] == pattern3 && raw[3] == pattern4 && raw[4] == pattern5)
+            {
+                byte[] v = new byte[3];
+                v[0] = raw[5];
+                v[1] = raw[6];
+                v[2] = raw[7];
+                var vnfo = QC.ConvertFromBinary<Vnfo>(new VarBuffer().SetPtr(-1).SetHasValue(true).SetValue(v));
+                return vnfo;
+            }
+            else
+                return null;
+        }
+        private static byte[] TrimArray(byte[] array, int startIndex, int length)
+        {
+            byte[] newArray = new byte[length];
+            Array.Copy(array, startIndex, newArray, 0, length);
+            return newArray;
         }
 
         public unsafe static VarBuffer ConvertToBinary(object value, int ptr)
@@ -441,6 +508,25 @@ namespace wbinary.Core
                     return obj;
                 },
                 typeof(IBuffering));
+
+                //Vnfo PRIVATE
+                RegisterResolve((obj, writer) =>
+                {
+                    var nfo = obj as Vnfo;
+                    writer.Write(nfo.Major);
+                    writer.Write(nfo.Minor);
+                    writer.Write(nfo.IsCompressed);
+                },
+                (type, reader) =>
+                {
+                    var obj = type.CreateInstance();
+                    var nodes = ObjectInspector.Inspect(type);
+                    nodes[0].SetValue(obj, reader.ReadByte());
+                    nodes[1].SetValue(obj, reader.ReadByte());
+                    nodes[2].SetValue(obj, reader.ReadBoolean());
+                    return obj;
+                },
+                typeof(Vnfo));
 
                 //Array
                 RegisterResolve((obj, writer) =>
