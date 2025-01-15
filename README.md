@@ -18,9 +18,9 @@ var obj = QC.Deserialize<T>(binary);
 
 | Type                              | Support | Version |
 | --------------------------------- | ------- | ------- |
-| ==All primitives with nullables== | ✅       | 0.12    |
+| All primitives with nullables | ✅       | 0.12    |
 | IBuffering                        | ✅       | 0.12    |
-| ==Array with nullables==          | ✅       | 0.12    |
+| Array with nullables          | ✅       | 0.12    |
 | Dictionary                        | ✅       | 0.12    |
 | List                              | ✅       | 0.12    |
 | DateTime                          | ✅       | 0.12    |
