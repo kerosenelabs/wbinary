@@ -1,7 +1,5 @@
 
 ---
-[[#FastUsage]]
-[[#Supported types]]
 ### *Fast usage*
 > *Быстрое использование*
 
