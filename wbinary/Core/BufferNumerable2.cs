@@ -6,24 +6,25 @@ using System.Threading.Tasks;
 
 namespace wbinary.Core
 {
-    public sealed class BufferNumerable
+    public sealed class BufferNumerableShort
     {
         private int _value = 0;
-        internal Dictionary<int, byte[]> Buffer = new Dictionary<int, byte[]>();
+        public int ReadIndex => _value;
+        internal List<byte[]> Buffer = new List<byte[]>();
         public VarBuffer this[int index]
         {
             get
             {
-                if (!Buffer.ContainsKey(index))
+                if (Buffer.ElementAtOrDefault(index) == null)
                     throw new IndexOutOfRangeException($"At the moment, the buffer has no active elements with the pointer '{index}'.");
                 return VarBuffer.FromBinary(Buffer[index]);
             }
             set
             {
-                if (Buffer.ContainsKey(index))
-                    Buffer[index] = value.ToBinary();
+                if (index >= Buffer.Count)
+                    Buffer.Add(value.ToBinary());
                 else
-                    Buffer.Add(index, value.ToBinary());
+                    Buffer[index] = value.ToBinary();
             }
         }
 
@@ -33,7 +34,7 @@ namespace wbinary.Core
             this[i] = QC.ConvertToBinary(obj, i);
         }
 
-        public T? ReadNext<T>()
+        public T? ReadNext<T>() 
         {
             return QC.ConvertFromBinary<T>(this[_value++]);
         }

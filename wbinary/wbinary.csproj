@@ -14,8 +14,8 @@
     <PackageIcon>liblogo.png</PackageIcon>
     <PackageTags>binary, formatter, binartformatter, quickc</PackageTags>
     <PackageOutputPath>$(OutputPath)</PackageOutputPath>
-    <AssemblyVersion>0.14.0.0</AssemblyVersion>
-	<VersionPrefix>0.14</VersionPrefix>
+    <AssemblyVersion>0.15.0.0</AssemblyVersion>
+	<VersionPrefix>0.15</VersionPrefix>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
   </PropertyGroup>

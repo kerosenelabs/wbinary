@@ -17,7 +17,7 @@ namespace wbinary.Core
     public static class QC
     {
         private const byte Major = 0;
-        private const byte Minor = 14;
+        private const byte Minor = 15;
         private const byte pattern1 = 0x00;
         private const byte pattern2 = 0xFF;
         private const byte pattern3 = 0x00;
@@ -513,6 +513,54 @@ namespace wbinary.Core
                     return obj;
                 },
                 typeof(IBuffering));
+
+                //IBufferingShort
+                RegisterResolve((obj, writer) =>
+                {
+                    var inspector = new ObjectInspector(obj);
+                    var nodes = inspector.Inspect();
+                    foreach (var node in nodes)
+                    {
+                        QC.WriteVarBuffer(QC.ConvertToBinary(node.Value, node.Ptr), writer);
+                    }
+                    //buffer of object
+                    var buffering = obj as IBufferingShort;
+                    var bf = new BufferNumerableShort();
+                    buffering.WriteToBuffer(bf);
+                    //count
+                    writer.Write(bf.Buffer.Count);
+                    foreach (var varBf in bf.Buffer)
+                    {
+                        writer.Write(varBf.Length);
+                        writer.Write(varBf);
+                    }
+                },
+                (type, reader) =>
+                {
+                    var nodes = ObjectInspector.Inspect(type);
+                    var obj = type.CreateInstance();
+                    foreach (var node in nodes)
+                    {
+                        var val = QC.ConvertFromBinary(QC.ReadVarBuffer(reader), node.ValueType);
+                        node.SetValue(obj, val);
+                    }
+
+                    //buffer of object
+                    var bf = new BufferNumerableShort();
+                    var buffering = obj as IBufferingShort;
+                    //count
+                    var count = reader.ReadInt32();
+                    for (var i = 0; i < count; i++)
+                    {
+                        var length = reader.ReadInt32();
+                        byte[] varBf = reader.ReadBytes(length);
+                        bf[i] = VarBuffer.FromBinary(varBf);
+                    }
+                    buffering.ReadFromBuffer(bf);
+
+                    return obj;
+                },
+                typeof(IBufferingShort));
 
                 //Vnfo PRIVATE
                 RegisterResolve((obj, writer) =>

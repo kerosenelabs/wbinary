@@ -12,4 +12,9 @@ namespace wbinary.Abstract
         void WriteToBuffer(BufferNumerable buffer);
         void ReadFromBuffer(BufferNumerable buffer);
     }
+    public interface IBufferingShort
+    {
+        void WriteToBuffer(BufferNumerableShort buffer);
+        void ReadFromBuffer(BufferNumerableShort buffer);
+    }
 }
