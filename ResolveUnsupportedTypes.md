@@ -2,7 +2,7 @@
 ---
 ### Resolve unsupported or custom types
 ###### If the required data types are missing in the latest version, it is possible to add them yourself.
-> Если в последней версии отсутствуют требуемые типы данных, есть возможность добавить их самостоятельно.
+> Р•СЃР»Рё РІ РїРѕСЃР»РµРґРЅРµР№ РІРµСЂСЃРёРё РѕС‚СЃСѓС‚СЃС‚РІСѓСЋС‚ С‚СЂРµР±СѓРµРјС‹Рµ С‚РёРїС‹ РґР°РЅРЅС‹С…, РµСЃС‚СЊ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊ РґРѕР±Р°РІРёС‚СЊ РёС… СЃР°РјРѕСЃС‚РѕСЏС‚РµР»СЊРЅРѕ.
 ```csharp
 QC.TypeResolver.RegisterResolve(
     (obj, writer) =>
@@ -17,7 +17,7 @@ QC.TypeResolver.RegisterResolve(
     params Type[] <allowedTypes>);
 ```
 ###### Example of adding resolve data types based on Dictionary.
-> Пример добавления разрешения типов данных на основе Dictionary.
+> РџСЂРёРјРµСЂ РґРѕР±Р°РІР»РµРЅРёСЏ СЂР°Р·СЂРµС€РµРЅРёСЏ С‚РёРїРѕРІ РґР°РЅРЅС‹С… РЅР° РѕСЃРЅРѕРІРµ Dictionary.
 ```csharp
 QC.TypeResolver.RegisterResolve((obj, writer) =>
                 {
@@ -53,7 +53,7 @@ QC.TypeResolver.RegisterResolve((obj, writer) =>
                 typeof(Dictionary<,>));
 ```
 ###### To write and read data, you can use both writer and reader, as well as TypeResolverExtensions (used if you need to write null or non-primitive types, arrays, etc.) in the QuickC.Extensions namespace.
-> Для записи и чтения данных вы можете использовать как writer и reader, так и TypeResolverExtensions (используется, если нужно записать null или не примитивные типы, массивы и т.д.) в пространстве имен QuickC.Extensions.
+> Р”Р»СЏ Р·Р°РїРёСЃРё Рё С‡С‚РµРЅРёСЏ РґР°РЅРЅС‹С… РІС‹ РјРѕР¶РµС‚Рµ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РєР°Рє writer Рё reader, С‚Р°Рє Рё TypeResolverExtensions (РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ, РµСЃР»Рё РЅСѓР¶РЅРѕ Р·Р°РїРёСЃР°С‚СЊ null РёР»Рё РЅРµ РїСЂРёРјРёС‚РёРІРЅС‹Рµ С‚РёРїС‹, РјР°СЃСЃРёРІС‹ Рё С‚.Рґ.) РІ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРµ РёРјРµРЅ QuickC.Extensions.
 ```csharp
 //non-null value
     writer.Write("some string");

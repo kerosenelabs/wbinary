@@ -1,10 +1,10 @@
 
 ---
 ### *Fast usage*
-> *¡˚ÒÚÓÂ ËÒÔÓÎ¸ÁÓ‚‡ÌËÂ*
+> *–ë—ã—Å—Ç—Ä–æ–µ –∏—Å–ø–æ–ª—å–∑–æ–≤–∞–Ω–∏–µ*
 
 ###### For quick use, the static QC (QuickConvert) class from the wbinary.Core namespace is used. It also allows you to significantly compress the byte array using Deflate compression.
-> ƒÎˇ ·˚ÒÚÓ„Ó ËÒÔÓÎ¸ÁÓ‚‡ÌËˇ ËÒÔÓÎ¸ÁÛÂÚÒˇ ÒÚ‡ÚË˜ÂÒÍËÈ ÍÎ‡ÒÒ QC (QuickConvert) ËÁ ÔÓÒÚ‡ÌÒÚ‚‡ ËÏÂÌ wbinary.Core. ›ÚÓ Ú‡ÍÊÂ ÔÓÁ‚ÓÎˇÂÚ ÁÌ‡˜ËÚÂÎ¸ÌÓ ÒÊ‡Ú¸ Ï‡ÒÒË‚ ·‡ÈÚ ÔÓÒÂ‰ÒÚ‚ÓÏ Deflate ÒÊ‡ÚËÂ.
+> –î–ª—è –±—ã—Å—Ç—Ä–æ–≥–æ –∏—Å–ø–æ–ª—å–∑–æ–≤–∞–Ω–∏—è –∏—Å–ø–æ–ª—å–∑—É–µ—Ç—Å—è —Å—Ç–∞—Ç–∏—á–µ—Å–∫–∏–π –∫–ª–∞—Å—Å QC (QuickConvert) –∏–∑ –ø—Ä–æ—Å—Ç—Ä–∞–Ω—Å—Ç–≤–∞ –∏–º–µ–Ω wbinary.Core. –≠—Ç–æ —Ç–∞–∫–∂–µ –ø–æ–∑–≤–æ–ª—è–µ—Ç –∑–Ω–∞—á–∏—Ç–µ–ª—å–Ω–æ —Å–∂–∞—Ç—å –º–∞—Å—Å–∏–≤ –±–∞–π—Ç –ø–æ—Å—Ä–µ–¥—Å—Ç–≤–æ–º Deflate —Å–∂–∞—Ç–∏—è.
 ```csharp
 byte[] binary = QC.Serialize(<object>);
 var obj = QC.Deserialize<T>(binary);

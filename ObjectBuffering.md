@@ -1,9 +1,9 @@
 
 ---
 ### *IBuffering Interface*
-> *»ÌÚÂÙÂÈÒ IBuffering*
+> *–ò–Ω—Ç–µ—Ä—Ñ–µ–π—Å IBuffering*
 ###### You probably would like to use the private members of your objects as you would like to do yourself, unfortunately QuickC does not support private members, but there is a simple solution - use the object buffer using the IBuffering interface. For example, you have a class like this:
-> ¬ÂÓˇÚÌÓ ‚˚ ·˚ ıÓÚÂÎË ÔÓÎ¸ÁÓ‚‡Ú¸Òˇ Á‡Í˚Ú˚ÏË ˜ÎÂÌ‡ÏË ‚‡¯Ëı Ó·˙ÂÍÚÓ‚ Í‡Í ıÓÚÂÎË ·˚ ˝ÚÓ„Ó Ò‡ÏË, Í ÒÓÊ‡ÎÂÌË˛ QuickC ÌÂ ÔÓ‰‰ÂÊË‚‡ÂÚ ÔË‚‡ÚÌ˚Â ˜ÎÂÌ˚, ÌÓ ÂÒÚ¸ ÔÓÒÚÓÂ Â¯ÂÌËÂ - ËÒÔÓÎ¸ÁÓ‚‡Ú¸ ·ÛÙÂ Ó·˙ÂÍÚ‡ Ò ÔÓÏÓ˘¸˛ ËÌÚÂÙÂÈÒ‡ IBuffering. Õ‡ÔËÏÂ Û ‚‡Ò ÂÒÚ¸ Ú‡ÍÓÈ ÍÎ‡ÒÒ:
+> –í–µ—Ä–æ—è—Ç–Ω–æ –≤—ã –±—ã —Ö–æ—Ç–µ–ª–∏ –ø–æ–ª—å–∑–æ–≤–∞—Ç—å—Å—è –∑–∞–∫—Ä—ã—Ç—ã–º–∏ —á–ª–µ–Ω–∞–º–∏ –≤–∞—à–∏—Ö –æ–±—ä–µ–∫—Ç–æ–≤ –∫–∞–∫ —Ö–æ—Ç–µ–ª–∏ –±—ã —ç—Ç–æ–≥–æ —Å–∞–º–∏, –∫ —Å–æ–∂–∞–ª–µ–Ω–∏—é QuickC –Ω–µ –ø–æ–¥–¥–µ—Ä–∂–∏–≤–∞–µ—Ç –ø—Ä–∏–≤–∞—Ç–Ω—ã–µ —á–ª–µ–Ω—ã, –Ω–æ –µ—Å—Ç—å –ø—Ä–æ—Å—Ç–æ–µ —Ä–µ—à–µ–Ω–∏–µ - –∏—Å–ø–æ–ª—å–∑–æ–≤–∞—Ç—å –±—É—Ñ–µ—Ä –æ–±—ä–µ–∫—Ç–∞ —Å –ø–æ–º–æ—â—å—é –∏–Ω—Ç–µ—Ä—Ñ–µ–π—Å–∞ IBuffering. –ù–∞–ø—Ä–∏–º–µ—Ä —É –≤–∞—Å –µ—Å—Ç—å —Ç–∞–∫–æ–π –∫–ª–∞—Å—Å:
 
 ```csharp
 public class ClassWithBuffer : IBuffering
@@ -33,7 +33,7 @@ public class ClassWithBuffer : IBuffering
     }
 ```
 ###### Now the buffer will be automatically taken into account when using the static QuickC class:
-> “ÂÔÂ¸ ·ÛÙÂ ·Û‰ÂÚ ‡‚ÚÓÏ‡ÚË˜ÂÒÍË Û˜ËÚ˚‚‡Ú¸Òˇ ÔË ËÒÔÓÎ¸ÁÓ‚‡ÌËË ÒÚ‡ÚË˜ÂÒÍÓ„Ó ÍÎ‡ÒÒ‡ QuickC:
+> –¢–µ–ø–µ—Ä—å –±—É—Ñ–µ—Ä –±—É–¥–µ—Ç –∞–≤—Ç–æ–º–∞—Ç–∏—á–µ—Å–∫–∏ —É—á–∏—Ç—ã–≤–∞—Ç—å—Å—è –ø—Ä–∏ –∏—Å–ø–æ–ª—å–∑–æ–≤–∞–Ω–∏–∏ —Å—Ç–∞—Ç–∏—á–µ—Å–∫–æ–≥–æ –∫–ª–∞—Å—Å–∞ QuickC:
 ```csharp
             var person1 = new ClassWithBuffer(18, "Tom");
             var bf = QC.Serialize(person1);
