@@ -6,18 +6,19 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Title>wbinary</Title>
+    <Title>QuickC</Title>
     <Authors>kerosene labs</Authors>
     <Description>A lightweight library for serializing objects into binary format, an array of bytes.</Description>
     <Copyright>Copyright (c) 2025 kerosene labs, Artem Sizov</Copyright>
     <PackageProjectUrl>https://github.com/kerosenelabs/wbinary</PackageProjectUrl>
     <PackageIcon>liblogo.png</PackageIcon>
-    <PackageTags>binary, formatter, binartformatter, quickc</PackageTags>
+    <PackageTags>binary, formatter, binaryformatter, quickc, quickconvert, wbinary</PackageTags>
     <PackageOutputPath>$(OutputPath)</PackageOutputPath>
-    <AssemblyVersion>0.15.0.0</AssemblyVersion>
-	<VersionPrefix>0.15</VersionPrefix>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+	<VersionPrefix>1.0</VersionPrefix>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <PackageReleaseNotes>Renamed from wbinary to QuickC, removed the pointer subsystem from all objects, optimized the headers, optimized a serialized structure, and etc.  </PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

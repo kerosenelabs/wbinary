@@ -1,0 +1,7 @@
+
+---
+### *About Hashtable*
+> *О Hashtable*
+###### It is not recommended to use Hashtable in your projects to write data, as Hashtable has a boxing/unboxing problem, which causes performance and memory issues. Since each Key and Value has an undefined data type, we can do serialization without specifying the types, but we cannot deserialize the data. Yes, QuickC implements the possibility of using Hashtable for the serialization process, but we cannot guarantee that the amount of information occupied will be at an acceptable level, the longer the type name, the more space it will occupy (without compression, without QuickC headers, native conversion: 228 bytes for Hashtable versus 116 bytes for Dictionary<int, string>, with values: {1: "one"} {2: "two"} {3: "three"} {4: "four"}).
+> Не рекомендуется использовать Hashtable в своих проектах для записи данных, так как Hashtable имеет проблему boxing/unboxing, из-за этого всплывают проблемы с производительностью и памятью. Так как каждый Key и Value имеют неопределенный тип данных, мы сможем сделать сериализацию без указания типов, но не сможем десериализовать данные. Да, в QuickC реализована возможность использования Hashtable для процесса сериализации, но мы не можем гарантировать, что объем занимаемой информации будет на приемлемом уровне, чем длиннее имя типа, тем больше будет занимаемое место (без сжатия, без заголовков QuickC, нативное преобразование: 228 байт у Hashtable против 116 байт у Dictionary<int, string>, в которых значения: {1: "one"} {2: "two"} {3: "three"} {4: "four"} ).
+---

@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\wbinary\wbinary.csproj" />
+    <ProjectReference Include="..\wbinary\QuickC.csproj" />
   </ItemGroup>
 
 </Project>

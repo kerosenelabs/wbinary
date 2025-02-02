@@ -1,14 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace wbinary.Extensions
+namespace QuickC.Extensions
 {
     internal static class Extensions
     {
+        public static bool IsStatic(this Type type)
+        {
+            if (type.GetConstructor(Type.EmptyTypes) == null && type.IsAbstract && type.IsSealed)
+                return true;
+            return false;
+        }
         public static Type? FindTypeFromAllAssemblies(this string fullTypeName)
         {
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
@@ -64,6 +71,16 @@ namespace wbinary.Extensions
         {
             var type = obj.GetType();
             return type.GetMethod(methodName).MakeGenericMethod(genericTypes).Invoke(obj, parameters);
+        }
+        public static object? InvokeStaticGenericMethod(this Type type, string methodName, Type[] genericTypes, int parametersCount, params object[] parameters)
+        {
+            var methods = type.GetMethods();
+            foreach (var method in methods)
+            {
+                if(method.Name == methodName && method.GetParameters().Length == parametersCount)
+                    return method.MakeGenericMethod(genericTypes).Invoke(null, parameters);
+            }
+            return null;
         }
         public static object? InvokeGenericMethod(this object obj, string methodName, Type genericType, params object[] parameters)
         {

@@ -3,17 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using wbinary.Abstract;
+using QuickC.Abstract;
 
-namespace wbinary.Core
+namespace QuickC.Core
 {
-    internal class Vnfo
+    internal static class Vnfo
     {
-        [Pointer(0)]
-        public byte Major {  get; set; }
-        [Pointer(1)]
-        public byte Minor { get; set; }
-        [Pointer(2)]
-        public bool IsCompressed { get; set; }
+        public static byte Major => 1;
+        public static byte Minor => 0;
     }
 }

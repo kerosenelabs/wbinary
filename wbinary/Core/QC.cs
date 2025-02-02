@@ -1,57 +1,54 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using wbinary.Abstract;
-using wbinary.Extensions;
+using QuickC.Abstract;
+using QuickC.Extensions;
 
-namespace wbinary.Core
+namespace QuickC.Core
 {
     public static class QC
     {
-        private const byte Major = 0;
-        private const byte Minor = 15;
-        private const byte pattern1 = 0x00;
-        private const byte pattern2 = 0xFF;
-        private const byte pattern3 = 0x00;
-        private const byte pattern4 = 0xFF;
-        private const byte pattern5 = 0x00;
-        public static string VersionPrefix => $"{Major}.{Minor}";
+        public static string VersionPrefix => $"{Vnfo.Major}.{Vnfo.Minor}";
         public static byte[] Serialize<T>(T obj, bool useCompression = true)
         {
-            var bytes = ConvertToBinary(obj, 0).ToBinary();
-            if (useCompression)
-                bytes = bytes.Zip();
-            return ConcatV(bytes, useCompression);
+            //step 1 - create container
+            var container = new RawContainer();
+            //step 2 - write headers
+            container.Headers = new Headers
+            {
+                UseCompression = true,
+                Major = Vnfo.Major,
+                Minor = Vnfo.Minor,
+            };
+            //step 3 - write payload
+            container.Payload = ConvertToBinary(obj).ToBinary();
+            return container.ToBinary();
         }
-        public static async Task<byte[]> SerializeAsync<T>(T obj)
+        public static async Task<byte[]> SerializeAsync<T>(T obj, bool useCompression = true)
         {
             return await Task.Run(() =>
             {
-                return Serialize(obj);
+                return Serialize(obj, useCompression);
             });
         }
-        public static T? Deserialize<T>(byte[] source)
+        public static T? Deserialize<T>(byte[] source, bool ignoreVersion = false)
         {
-            var vnfo = TryDecV(source);
-            if (vnfo == null)
-                return ConvertFromBinary<T>(VarBuffer.FromBinary(source.Unzip()));
-            if(vnfo.Major > Major)
-                throw new InvalidOperationException($"Requires QuickC version '{vnfo.Major}.{vnfo.Minor}', current version '{VersionPrefix}'");
-            if (vnfo.Major == Major && vnfo.Minor > Minor)
-                throw new InvalidOperationException($"Requires QuickC version '{vnfo.Major}.{vnfo.Minor}', current version '{VersionPrefix}'");
-            source = TrimArray(source, 8, source.Length - 8);
-            if(vnfo.IsCompressed)
-                return ConvertFromBinary<T>(VarBuffer.FromBinary(source.Unzip()));
-            else
-                return ConvertFromBinary<T>(VarBuffer.FromBinary(source));
+            var container = RawContainer.FromBinary(source);
+            if (!ignoreVersion && (container.Headers.Major > Vnfo.Major || container.Headers.Minor > Vnfo.Minor))
+                throw new UnsupportedVersionException(container.Headers);
+            return ConvertFromBinary<T>(BinaryVar.FromBinary(container.Payload));
         }
         public static async Task<T?> DeserializeAsync<T>(byte[] source)
         {
@@ -60,77 +57,31 @@ namespace wbinary.Core
                 return Deserialize<T>(source);
             });
         }
-
-        private static byte[] GenerateArrV(bool useCompr)
-        {
-            var vnfo = new Vnfo
-            {
-                Major = Major,
-                Minor = Minor,
-                IsCompressed = useCompr
-            };
-            var nfo = QC.ConvertToBinary(vnfo, -1).Source.ToArray();
-            return nfo;
-        }
-        private static byte[] ConcatV(byte[] source, bool useCompr)
-        {
-            byte[] version = GenerateArrV(useCompr);
-            var result = new byte[source.Length + version.Length + 5];
-            result[0] = pattern1;
-            result[1] = pattern2;
-            result[2] = pattern3;
-            result[3] = pattern4;
-            result[4] = pattern5;
-            version.CopyTo(result, 5);
-            source.CopyTo(result, version.Length + 5);
-            return result;
-        }
-        private static Vnfo TryDecV(byte[] raw)
-        {
-            if (raw[0] == pattern1 && raw[1] == pattern2 && raw[2] == pattern3 && raw[3] == pattern4 && raw[4] == pattern5)
-            {
-                byte[] v = new byte[3];
-                v[0] = raw[5];
-                v[1] = raw[6];
-                v[2] = raw[7];
-                var vnfo = QC.ConvertFromBinary<Vnfo>(new VarBuffer().SetPtr(-1).SetHasValue(true).SetValue(v));
-                return vnfo;
-            }
-            else
-                return null;
-        }
-        private static byte[] TrimArray(byte[] array, int startIndex, int length)
-        {
-            byte[] newArray = new byte[length];
-            Array.Copy(array, startIndex, newArray, 0, length);
-            return newArray;
-        }
-
-        public unsafe static VarBuffer ConvertToBinary(object value, int ptr)
+        public static BinaryVar ConvertToBinary(object? value)
         {
             using (MemoryStream m = new MemoryStream())
             {
                 using (BinaryWriter writer = new BinaryWriter(m))
                 {
-                    var buffer = new VarBuffer().SetPtr(ptr);
+                    var buffer = new BinaryVar();
                     if (value == null)
                         buffer = buffer.SetHasValue(false);
                         
                     else
                     {
                         buffer = buffer.SetHasValue(true);
-                        WriteValue(writer, value, true);
+                        writer.WriteResolve(value);
                     }
                     buffer = buffer.SetValue(m.ToArray());
                     return buffer;
                 }
             }
         }
-        public unsafe static T? ConvertFromBinary<T>(VarBuffer buffer)
+        public static T? ConvertFromBinary<T>(BinaryVar buffer)
         {
             if(buffer.HasValue == false)
                 return default(T?);
-            using (MemoryStream m = new MemoryStream(buffer.Source.ToArray()))
+            using (MemoryStream m = new MemoryStream(buffer.Payload.ToArray()))
             {
                 var type = typeof(T);
                 using (BinaryReader reader = new BinaryReader(m))
@@ -191,29 +142,29 @@ namespace wbinary.Core
                     {
                         return (T)(object)reader.ReadString();
                     }
+                    if (typeof(T).FullName.StartsWith("System.Nullable"))
+                    {
+                        Type underlyingType = Nullable.GetUnderlyingType(type);
+                        return (T)ConvertFromBinary(buffer, underlyingType);
+                    }
+                    var resolver = TypeResolver.FindReaderResolve(typeof(T));
+                    if (resolver != null)
+                        return (T)resolver?.Invoke(typeof(T), reader);
                     else
                     {
-                        var resolver = TypeResolver.FindReaderResolve(typeof(T));
-                        if (resolver != null)
-                            return (T)resolver?.Invoke(typeof(T), reader);
-                        else
-                        {
-                            resolver = TypeResolver.DefaultReaderResolve;
-                            return (T)resolver?.Invoke(typeof(T), reader);
-                        }
+                        resolver = TypeResolver.DefaultReaderResolve;
+                        return (T)resolver?.Invoke(typeof(T), reader);
                     }
-
-                    throw new InvalidOperationException($"Unsupported type: {typeof(T)}");
                 }
             }
         }
-        public unsafe static object? ConvertFromBinary(VarBuffer buffer, Type type)
+        public static object? ConvertFromBinary(BinaryVar buffer, Type type)
         {
             if (buffer.HasValue == false)
             {
                 return null;
             }
-            using (MemoryStream m = new MemoryStream(buffer.Source.ToArray()))
+            using (MemoryStream m = new MemoryStream(buffer.Payload.ToArray()))
             {
                 using (BinaryReader reader = new BinaryReader(m))
                 {
@@ -295,132 +246,6 @@ namespace wbinary.Core
             }
         }
 
-        internal static void WriteValue(BinaryWriter writer, object value, bool useResolverNative = false)
-        {
-            switch (value)
-            {
-                case bool boolValue:
-                    writer.Write(boolValue);
-                    break;
-                case byte byteValue:
-                    writer.Write(byteValue);
-                    break;
-                case char charValue:
-                    writer.Write(charValue);
-                    break;
-                case decimal decimalValue:
-                    writer.Write(decimalValue);
-                    break;
-                case double doubleValue:
-                    writer.Write(doubleValue);
-                    break;
-                case short shortValue:
-                    writer.Write(shortValue);
-                    break;
-                case int intValue:
-                    writer.Write(intValue);
-                    break;
-                case long longValue:
-                    writer.Write(longValue);
-                    break;
-                case sbyte sbyteValue:
-                    writer.Write(sbyteValue);
-                    break;
-                case float floatValue:
-                    writer.Write(floatValue);
-                    break;
-                case ushort ushortValue:
-                    writer.Write(ushortValue);
-                    break;
-                case uint uintValue:
-                    writer.Write(uintValue);
-                    break;
-                case ulong ulongValue:
-                    writer.Write(ulongValue);
-                    break;
-                case string stringValue:
-                    writer.Write(stringValue);
-                    break;
-                case Half HalfValue:
-                    writer.Write(HalfValue);
-                    break;
-                default:
-                    if (useResolverNative)
-                    {
-                        var resolver = TypeResolver.FindWriterResolve(value.GetType());
-                        if(resolver != null)
-                            resolver?.Invoke(value, writer);
-                        else
-                        {
-                            resolver = TypeResolver.DefaultWriterResolve;
-                            resolver?.Invoke(value, writer);
-                        }
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException($"Unsupported type: {value.GetType()}");
-                    }
-                    break;
-            }
-        }
-        internal static object ReadValue(BinaryReader reader, Type elementType, bool useResolveNative = false)
-        {
-            if (elementType == typeof(bool))
-                return reader.ReadBoolean();
-            if (elementType == typeof(byte))
-                return reader.ReadByte();
-            if (elementType == typeof(char))
-                return reader.ReadChar();
-            if (elementType == typeof(decimal))
-                return reader.ReadDecimal();
-            if (elementType == typeof(double))
-                return reader.ReadDouble();
-            if (elementType == typeof(short))
-                return reader.ReadInt16();
-            if (elementType == typeof(int))
-                return reader.ReadInt32();
-            if (elementType == typeof(long))
-                return reader.ReadInt64();
-            if (elementType == typeof(sbyte))
-                return reader.ReadSByte();
-            if (elementType == typeof(float))
-                return reader.ReadSingle();
-            if (elementType == typeof(ushort))
-                return reader.ReadUInt16();
-            if (elementType == typeof(uint))
-                return reader.ReadUInt32();
-            if (elementType == typeof(ulong))
-                return reader.ReadUInt64();
-            if (elementType == typeof(string))
-                return reader.ReadString();
-            if (useResolveNative)
-            {
-                var resolver = TypeResolver.FindReaderResolve(elementType);
-                if (resolver != null)
-                    return resolver?.Invoke(elementType, reader);
-                else
-                {
-                    resolver = TypeResolver.DefaultReaderResolve;
-                    return resolver?.Invoke(elementType, reader);
-                }
-            }
-
-            throw new InvalidOperationException($"Unsupported array element type: {elementType}");
-        }
-
-        public static void WriteVarBuffer(VarBuffer buffer, BinaryWriter writer)
-        {
-            var binary = buffer.ToBinary();
-            writer.Write(binary.Length);
-            writer.Write(binary);
-        }
-        public static VarBuffer ReadVarBuffer(BinaryReader reader)
-        {
-            var length = reader.ReadInt32();
-            var binary = reader.ReadBytes(length);
-            return VarBuffer.FromBinary(binary);
-        }
-
         public static class TypeResolver
         {
             private static List<ResolveObject> resolveObjects = new List<ResolveObject>();
@@ -434,7 +259,7 @@ namespace wbinary.Core
                     var nodes = inspector.Inspect();
                     foreach (var node in nodes)
                     {
-                        QC.WriteVarBuffer(QC.ConvertToBinary(node.Value, node.Ptr), writer);
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(node.Value));
                     }
                 },
                 resolveTypeRead = (type, reader) =>
@@ -443,7 +268,7 @@ namespace wbinary.Core
                     var obj = type.CreateInstance();
                     foreach (var node in nodes)
                     {
-                        var val = QC.ConvertFromBinary(QC.ReadVarBuffer(reader), node.ValueType);
+                        var val = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), node.ObjectType);
                         node.SetValue(obj, val);
                     }
                     return obj;
@@ -471,62 +296,12 @@ namespace wbinary.Core
                     var nodes = inspector.Inspect();
                     foreach (var node in nodes)
                     {
-                        QC.WriteVarBuffer(QC.ConvertToBinary(node.Value, node.Ptr), writer);
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(node.Value));
                     }
                     //buffer of object
                     var buffering = obj as IBuffering;
-                    var bf = new BufferNumerable();
-                    buffering.WriteToBuffer(bf);
-                    //count
-                    writer.Write(bf.Buffer.Count);
-                    foreach (var varBf in bf.Buffer)
-                    {
-                        writer.Write(varBf.Value.Length);
-                        writer.Write(varBf.Key);
-                        writer.Write(varBf.Value);
-                    }
-                },
-                (type, reader) =>
-                {
-                    var nodes = ObjectInspector.Inspect(type);
-                    var obj = type.CreateInstance();
-                    foreach (var node in nodes)
-                    {
-                        var val = QC.ConvertFromBinary(QC.ReadVarBuffer(reader), node.ValueType);
-                        node.SetValue(obj, val);
-                    }
-
-                    //buffer of object
-                    var bf = new BufferNumerable();
-                    var buffering = obj as IBuffering;
-                    //count
-                    var count = reader.ReadInt32();
-                    for (var i = 0; i < count; i++)
-                    {
-                        var length = reader.ReadInt32();
-                        var key = reader.ReadInt32();
-                        byte[] varBf = reader.ReadBytes(length);
-                        bf[key] = VarBuffer.FromBinary(varBf);
-                    }
-                    buffering.ReadFromBuffer(bf);
-
-                    return obj;
-                },
-                typeof(IBuffering));
-
-                //IBufferingShort
-                RegisterResolve((obj, writer) =>
-                {
-                    var inspector = new ObjectInspector(obj);
-                    var nodes = inspector.Inspect();
-                    foreach (var node in nodes)
-                    {
-                        QC.WriteVarBuffer(QC.ConvertToBinary(node.Value, node.Ptr), writer);
-                    }
-                    //buffer of object
-                    var buffering = obj as IBufferingShort;
-                    var bf = new BufferNumerableShort();
-                    buffering.WriteToBuffer(bf);
+                    var bf = new ObjectBuffer();
+                    buffering.OnWriteToBuffer(bf);
                     //count
                     writer.Write(bf.Buffer.Count);
                     foreach (var varBf in bf.Buffer)
@@ -541,143 +316,338 @@ namespace wbinary.Core
                     var obj = type.CreateInstance();
                     foreach (var node in nodes)
                     {
-                        var val = QC.ConvertFromBinary(QC.ReadVarBuffer(reader), node.ValueType);
+                        var val = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), node.ObjectType);
                         node.SetValue(obj, val);
                     }
 
                     //buffer of object
-                    var bf = new BufferNumerableShort();
-                    var buffering = obj as IBufferingShort;
+                    var bf = new ObjectBuffer();
+                    var buffering = obj as IBuffering;
                     //count
                     var count = reader.ReadInt32();
                     for (var i = 0; i < count; i++)
                     {
                         var length = reader.ReadInt32();
                         byte[] varBf = reader.ReadBytes(length);
-                        bf[i] = VarBuffer.FromBinary(varBf);
+                        bf[i] = BinaryVar.FromBinary(varBf);
                     }
-                    buffering.ReadFromBuffer(bf);
+                    buffering.OnReadFromBuffer(bf);
 
                     return obj;
                 },
-                typeof(IBufferingShort));
-
-                //Vnfo PRIVATE
-                RegisterResolve((obj, writer) =>
-                {
-                    var nfo = obj as Vnfo;
-                    writer.Write(nfo.Major);
-                    writer.Write(nfo.Minor);
-                    writer.Write(nfo.IsCompressed);
-                },
-                (type, reader) =>
-                {
-                    var obj = type.CreateInstance();
-                    var nodes = ObjectInspector.Inspect(type);
-                    nodes[0].SetValue(obj, reader.ReadByte());
-                    nodes[1].SetValue(obj, reader.ReadByte());
-                    nodes[2].SetValue(obj, reader.ReadBoolean());
-                    return obj;
-                },
-                typeof(Vnfo));
+                typeof(IBuffering));
+                #region IEnumerable<T>, ICollection<T>
 
                 //Array
                 RegisterResolve((obj, writer) =>
                 {
                     var arr = obj as Array;
                     var length = arr.Length;
-                    //0
                     writer.Write(length);
                     for (int i = 0; i < length; i++)
                     {
-                        var buffer = QC.ConvertToBinary(arr.GetValue(i), i);
-                        QC.WriteVarBuffer(buffer, writer);
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(arr.GetValue(i)));
                     }
                 },
                 (type, reader) =>
                 {
-                    Type elementType = type.GetElementType();
                     int length = reader.ReadInt32();
+                    Type elementType = type.GetElementType();
                     Array array = Array.CreateInstance(elementType, length);
 
                     for (int i = 0; i < length; i++)
                     {
-                        var obj = QC.ConvertFromBinary(QC.ReadVarBuffer(reader), elementType);
+                        var obj = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), elementType);
                         array.SetValue(obj, i);
                     }
                     return array;
                 },
                 typeof(Array));
 
-                //Dictionary
+                //List
                 RegisterResolve((obj, writer) =>
                 {
-                    var dictionary = obj as IDictionary;
-                    writer.Write(dictionary.Count);
-
-                    int ptr = 0;
-                    foreach (var key in dictionary.Keys)
+                    var list = obj as IList;
+                    //step 1 - write length
+                    writer.Write(list.Count);
+                    int i = 0;
+                    //step 2 - write items
+                    foreach (var item in list)
                     {
-                        QC.WriteVarBuffer(QC.ConvertToBinary(key, ptr++), writer);
-                    }
-                    ptr = 0;
-                    foreach (var val in dictionary.Values)
-                    {
-                        QC.WriteVarBuffer(QC.ConvertToBinary(val, ptr++), writer);
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(item));
                     }
                 },
                 (type, reader) =>
                 {
+                    //step 1 - read length
+                    var length = reader.ReadInt32();
+                    var list = type.CreateInstance();
+                    var itemType = list.GetType().GetGenericArguments()[0];
+                    //step 2 - read items
+                    for (int i = 0; i < length; i++)
+                    {
+                        list.InvokeMethod("Add", QC.ConvertFromBinary(reader.ReadBinaryVarNative(), itemType));
+                    }
+                    return list;
+                },
+                typeof(List<>));
+
+                //Stack
+                RegisterResolve((obj, writer) =>
+                {
+                    var pi = obj.GetType().GetProperty("Count");
+                    var length = (int)pi.GetValue(obj);
+                    var arr = Array.CreateInstance(obj.GetType().GetGenericArguments()[0], length);
+                    obj.InvokeMethod("CopyTo", arr, 0);
+                    Array.Reverse(arr);
+                    //step 1 - write length
+                    writer.Write(length);
+                    //step 2 - write values
+                    for (int i = 0; i < length; i++)
+                    {
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(arr.GetValue(i)));
+                    }
+                },
+                (type, reader) =>
+                {
+                    //step 1 - read length
+                    var length = reader.ReadInt32();
+                    var itemType = type.GetGenericArguments()[0];
+                    var obj = type.CreateInstance();
+                    //step 2 - read values
+                    for (int i = 0; i < length; i++)
+                    {
+                        obj.InvokeMethod("Push", QC.ConvertFromBinary(reader.ReadBinaryVarNative(), itemType));
+                    }
+
+                    return obj;
+                },
+                typeof(Stack<>));
+
+                //Queue
+                RegisterResolve((obj, writer) =>
+                {
+                    var list = obj as ICollection;
+                    //step 1 - write length
+                    writer.Write(list.Count);
+                    int i = 0;
+                    //step 2 - write items
+                    foreach (var item in list)
+                    {
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(item));
+                    }
+                },
+                (type, reader) =>
+                {
+                    //step 1 - read length
+                    var length = reader.ReadInt32();
+                    var list = type.CreateInstance();
+                    var itemType = list.GetType().GetGenericArguments()[0];
+                    //step 2 - read items
+                    for (int i = 0; i < length; i++)
+                    {
+                        list.InvokeMethod("Enqueue", QC.ConvertFromBinary(reader.ReadBinaryVarNative(), itemType));
+                    }
+                    return list;
+                },
+                typeof(Queue<>));
+
+                //LinkedList
+                RegisterResolve((obj, writer) =>
+                {
+                    var list = obj as ICollection;
+                    //step 1 - write length
+                    writer.Write(list.Count);
+                    int i = 0;
+                    //step 2 - write items
+                    foreach (var item in list)
+                    {
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(item));
+                    }
+                },
+                (type, reader) =>
+                {
+                    //step 1 - read length
+                    var length = reader.ReadInt32();
+                    var list = type.CreateInstance();
+                    var itemType = list.GetType().GetGenericArguments()[0];
+                    var methods = list.GetType().GetMethods();
+                    MethodInfo mi = null;
+                    foreach (var method in methods)
+                        if (method.Name == "AddLast" && method.GetParameters().Length == 1)
+                        {
+                            mi = method;
+                            break;
+                        }
+                    //step 2 - read items
+                    for (int i = 0; i < length; i++)
+                    {
+                        mi.Invoke(list, new[] { QC.ConvertFromBinary(reader.ReadBinaryVarNative(), itemType) });
+                    }
+                    return list;
+                },
+                typeof(LinkedList<>));
+
+                #endregion
+
+                #region IDictionary<,>
+                //Dictionary
+                RegisterResolve((obj, writer) =>
+                {
+                    var dictionary = obj as IDictionary;
+                    //step 1 - write length
+                    writer.Write(dictionary.Count);
+                    //step 2 - write keysValuePairs
+                    foreach (var key in dictionary.Keys)
+                    {
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(key));
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(dictionary[key]));
+                    }
+                },
+                (type, reader) =>
+                {
+                    //step 1 - read length
                     var length = reader.ReadInt32();
 
                     var dictionary = type.CreateInstance();
                     var keyType = dictionary.GetType().GetGenericArguments()[0];
                     var valueType = dictionary.GetType().GetGenericArguments()[1];
-                    var keys = Array.CreateInstance(keyType, length);
-                    var values = Array.CreateInstance(valueType, length);
 
+                    //step 2 - read keyValue pair
                     for (int i = 0; i < length; i++)
                     {
-                        keys.SetValue(QC.ConvertFromBinary(QC.ReadVarBuffer(reader), keyType), i);
-                    }
-
-                    for (int i = 0; i < length; i++)
-                    {
-                        values.SetValue(QC.ConvertFromBinary(QC.ReadVarBuffer(reader), valueType), i);
-                    }
-
-                    for (int i = 0; i < length; i++)
-                    {
-                        dictionary.InvokeMethod("Add", keys.GetValue(i), values.GetValue(i));
+                        var key = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), keyType);
+                        var value = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), valueType);
+                        dictionary.InvokeMethod("Add", key, value);
                     }
 
                     return dictionary;
                 },
-                typeof(IDictionary));
+                typeof(Dictionary<,>));
 
-                //List
+                //ConcurrentDictionary
                 RegisterResolve((obj, writer) =>
                 {
-                    var list = obj as IList;
-                    writer.Write(list.Count);
-                    int i = 0;
-                    foreach (var item in list)
+                    var dictionary = obj as IDictionary;
+                    //step 1 - write length
+                    writer.Write(dictionary.Count);
+                    //step 2 - write keysValuePairs
+                    foreach (var key in dictionary.Keys)
                     {
-                        QC.WriteVarBuffer(QC.ConvertToBinary(item, i++), writer);
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(key));
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(dictionary[key]));
                     }
                 },
                 (type, reader) =>
                 {
+                    //step 1 - read length
                     var length = reader.ReadInt32();
-                    var list = type.CreateInstance();
-                    var itemType = list.GetType().GetGenericArguments()[0];
+
+                    var dictionary = type.CreateInstance();
+                    var keyType = dictionary.GetType().GetGenericArguments()[0];
+                    var valueType = dictionary.GetType().GetGenericArguments()[1];
+
+                    //step 2 - read keyValue pair
                     for (int i = 0; i < length; i++)
                     {
-                        list.InvokeMethod("Add", QC.ConvertFromBinary(QC.ReadVarBuffer(reader), itemType));
+                        var key = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), keyType);
+                        var value = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), valueType);
+                        dictionary.InvokeMethod("TryAdd", key, value);
                     }
-                    return list;
+
+                    return dictionary;
                 },
-                typeof(List<>));
+                typeof(ConcurrentDictionary<,>));
+
+                //ImmutableDictionary
+                RegisterResolve((obj, writer) =>
+                {
+                    var dictionary = obj as IDictionary;
+                    //step 1 - write length
+                    writer.Write(dictionary.Count);
+                    //step 2 - write keysValuePairs
+                    foreach (var key in dictionary.Keys)
+                    {
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(key));
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(dictionary[key]));
+                    }
+                },
+                (type, reader) =>
+                {
+                    //step 1 - read length
+                    var length = reader.ReadInt32();
+                    
+                    var keyType = type.GetGenericArguments()[0];
+                    var valueType = type.GetGenericArguments()[1];
+                    var dictionary = typeof(ImmutableDictionary).InvokeStaticGenericMethod("Create", new[] { keyType, valueType }, 0);
+
+                    //step 2 - read keyValue pair
+                    for (int i = 0; i < length; i++)
+                    {
+                        var key = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), keyType);
+                        var value = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), valueType);
+                        dictionary = dictionary.InvokeMethod("Add", key, value);
+                    }
+
+                    return dictionary;
+                },
+                typeof(ImmutableDictionary<,>));
+                #endregion
+
+                //Hashtable
+                RegisterResolve((obj, writer) =>
+                {
+                    var hashtable = obj as Hashtable;
+                    //step 1 - write length
+                    writer.Write(hashtable.Count);
+                    //step 2 - write keysValuePairs
+                    foreach (var key in hashtable.Keys)
+                    {
+                        var value = hashtable[key];
+                        // 1 - write key type
+                        writer.Write(key.GetType().FullName);
+                        // 2 - write key
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(key));
+                        // 3 - check if value is null
+                        if (value == null)
+                            writer.Write(false); // Has value | false == null
+                        else
+                        {
+                            writer.Write(true); //  Has value | true != null
+                            writer.Write(value.GetType().FullName);
+                            writer.WriteBinaryVarNative(QC.ConvertToBinary(value));
+                        }
+                    }
+                },
+                (type, reader) =>
+                {
+                    //step 1 - read length
+                    var length = reader.ReadInt32();
+
+                    var hashtable = new Hashtable();
+
+                    //step 2 - read keyValue pair
+                    for (int i = 0; i < length; i++)
+                    {
+                        // 1 - read key type
+                        var keyType = reader.ReadString().FindTypeFromAllAssemblies();
+                        // 2 - read key
+                        var key = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), keyType);
+                        if (reader.ReadBoolean())// Has value | true != null
+                        {
+                            var valueType = reader.ReadString().FindTypeFromAllAssemblies();
+                            var value = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), valueType);
+                            hashtable.Add(key, value);
+                        }
+                        else                     // Has value | false == null
+                        {
+                            hashtable.Add(key, null);
+                        }
+                    }
+
+                    return hashtable;
+                },
+                typeof(Hashtable));
 
                 //DateTime
                 RegisterResolve((obj, writer) =>
@@ -695,12 +665,12 @@ namespace wbinary.Core
                 RegisterResolve((obj, writer) =>
                 {
                     object underlyingValue = Convert.ChangeType(obj, Enum.GetUnderlyingType(obj.GetType()));
-                    WriteValue(writer, underlyingValue, true);
+                    writer.WriteResolve(underlyingValue);
                 },
                 (type, reader) =>
                 {
                     var underlyingType = Enum.GetUnderlyingType(type);
-                    var obj = ReadValue(reader, underlyingType, true);
+                    var obj = reader.ReadResolve(underlyingType);
                     return obj;
                 },
                 typeof(Enum));
@@ -794,34 +764,6 @@ namespace wbinary.Core
                 },
                 typeof(Uri));
 
-                //Stack
-                RegisterResolve((obj, writer) =>
-                {
-                    var pi = obj.GetType().GetProperty("Count");
-                    var length = (int)pi.GetValue(obj);
-                    var arr = Array.CreateInstance(obj.GetType().GetGenericArguments()[0], length);
-                    obj.InvokeMethod("CopyTo", arr, 0);
-                    Array.Reverse(arr);
-                    writer.Write(length);
-                    for(int i = 0; i < length; i++)
-                    {
-                        QC.WriteVarBuffer(QC.ConvertToBinary(arr.GetValue(i), i), writer);
-                    }
-                },
-                (type, reader) =>
-                {
-                    var length = reader.ReadInt32();
-                    var itemType = type.GetGenericArguments()[0];
-                    var obj = type.CreateInstance();
-                    for (int i = 0; i < length; i++)
-                    {
-                        obj.InvokeMethod("Push", QC.ConvertFromBinary(QC.ReadVarBuffer(reader), itemType));
-                    }
-                    
-                    return obj;
-                },
-                typeof(Stack<>));
-
                 //Vector2
                 RegisterResolve((obj, writer) =>
                 {
@@ -875,7 +817,7 @@ namespace wbinary.Core
                     writer.Write(arr.Length);
                     for(int i = 0; i < arr.Length; i++)
                     {
-                        QC.WriteVarBuffer(QC.ConvertToBinary(arr.GetValue(i), i), writer);
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(arr.GetValue(i)));
                     }
                 },
                 (type, reader) =>
@@ -885,7 +827,7 @@ namespace wbinary.Core
                     var arr = Array.CreateInstance(itemType, length);
                     for (int i = 0; i < length; i++)
                     {
-                        arr.SetValue(QC.ConvertFromBinary(QC.ReadVarBuffer(reader), itemType), i);
+                        arr.SetValue(QC.ConvertFromBinary(reader.ReadBinaryVarNative(), itemType), i);
                     }
                     return type.CreateInstanceWithArgs(arr);
                 },
@@ -939,12 +881,12 @@ namespace wbinary.Core
                 RegisterResolve((obj, writer) =>
                 {
                     var plane = (Plane)obj;
-                    WriteValue(writer, plane.Normal, true);
+                    writer.WriteResolve(plane.Normal);
                     writer.Write(plane.D);
                 },
                 (type, reader) =>
                 {
-                    return new Plane((Vector3)ReadValue(reader, typeof(Vector3), true), reader.ReadSingle());
+                    return new Plane((Vector3)reader.ReadResolve(typeof(Vector3)), reader.ReadSingle());
                 },
                 typeof(Plane));
 
@@ -968,13 +910,13 @@ namespace wbinary.Core
                 {
                     var q = (TimeZoneInfo)obj;
                     writer.Write(q.Id);
-                    WriteValue(writer, q.BaseUtcOffset, true);
+                    writer.WriteResolve(q.BaseUtcOffset);
                     writer.Write(q.DisplayName);
                     writer.Write(q.StandardName);
                 },
                 (type, reader) =>
                 {
-                    return TimeZoneInfo.CreateCustomTimeZone(reader.ReadString(), (TimeSpan)ReadValue(reader, typeof(TimeSpan), true), reader.ReadString(), reader.ReadString());
+                    return TimeZoneInfo.CreateCustomTimeZone(reader.ReadString(), (TimeSpan)reader.ReadResolve(typeof(TimeSpan)), reader.ReadString(), reader.ReadString());
                 },
                 typeof(TimeZoneInfo));
 
@@ -987,7 +929,7 @@ namespace wbinary.Core
                     for(int i = 0; i < length; i++)
                     {
                         var value = intf[i];
-                        QC.WriteVarBuffer(QC.ConvertToBinary(value, i), writer);
+                        writer.WriteBinaryVarNative(QC.ConvertToBinary(value));
                     }
                 },
                 (type, reader) =>
@@ -1012,7 +954,7 @@ namespace wbinary.Core
 
                     for (int i = 0;i < length; i++)
                     {
-                        var value = QC.ConvertFromBinary(QC.ReadVarBuffer(reader), types[i]);
+                        var value = QC.ConvertFromBinary(reader.ReadBinaryVarNative(), types[i]);
                         SetValueTuple(tuple, value, i);
                     }
                     return tuple;
@@ -1023,12 +965,12 @@ namespace wbinary.Core
                 RegisterResolve((obj, writer) =>
                 {
                     var vt = CallToValueTuple(obj);
-                    WriteValue(writer, vt, true);
+                    writer.WriteResolve(vt);
                 },
                 (type, reader) =>
                 {
                     var vttype = TupleToValueTupleType(type);
-                    var vt = ReadValue(reader, vttype, true);
+                    var vt = reader.ReadResolve(vttype);
                     return CallToTuple(vt);
                 },
                 typeof(Tuple<>), typeof(Tuple<,>), typeof(Tuple<,,>), typeof(Tuple<,,,>), typeof(Tuple<,,,,>), typeof(Tuple<,,,,,>), typeof(Tuple<,,,,,,>), typeof(Tuple<,,,,,,,>));

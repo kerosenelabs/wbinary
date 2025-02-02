@@ -1,26 +1,31 @@
-﻿using System;
+﻿using QuickC.Extensions;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace wbinary
+namespace QuickC
 {
     /// <summary>
     /// Not considered when buffering
     /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-    public class NoPointerAttribute : Attribute
+    public class NotSerializeAttribute : Attribute
     {
     }
-    /// <summary>
-    /// Adding a special pointer
-    /// </summary>
+
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-    public class PointerAttribute : Attribute
+    public class TypeBindingAttribute : Attribute
     {
-        public int Ptr {  get; set; }
-        public PointerAttribute(int ptr) { Ptr = ptr; }
+        public Type TypeBind { get; set; }
+        public TypeBindingAttribute(Type type)
+        {
+            if (type.IsInterface || type.IsAbstract || type.IsStatic() || type.Equals(typeof(Hashtable)))
+                throw new Exception("The \"TypeBindingAttribute\" attribute cannot be used with interfaces, abstract and static classes, Hashtable.");
+            TypeBind = type;
+        }
     }
 }

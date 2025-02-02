@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace wbinary.Core
+namespace QuickC.Core
 {
     public class ObjectInspector
     {
@@ -22,58 +22,39 @@ namespace wbinary.Core
         {
             var fields = InstanceType.GetFields();
             var properties = InstanceType.GetProperties();
-            var pointers = new List<int>();
             var nodes = new List<PtrNodeValue>();
             int ptr = 0;
             foreach (var item in properties)
             {
                 if (!item.CanWrite || !item.CanRead)
                     continue;
-                var attrNoPtr = item.GetCustomAttribute<NoPointerAttribute>();
+                var attrNoPtr = item.GetCustomAttribute<NotSerializeAttribute>();
                 if (attrNoPtr != null)
                     continue;
+                var attrBinding = item.GetCustomAttribute<TypeBindingAttribute>();
                 int curPtr = ptr;
-                var attrPtr = item.GetCustomAttribute<PointerAttribute>();
-                if (attrPtr != null)
-                {
-                    curPtr = attrPtr.Ptr;
-                    if (pointers.Contains(curPtr))
-                        throw new ArgumentException($"The pointer '{curPtr}' specified in the 'PointerAttribute' attribute in a '{InstanceType.FullName}' object has been used for marking up several times.");
-                }
-                pointers.Add(curPtr);
-                nodes.Add(new PtrNodeValue(item, curPtr, item.GetValue(Instance)));
-                ptr = ExcludePtr(++ptr, pointers);
+                if (attrBinding == null)
+                    nodes.Add(new PtrNodeValue(item, curPtr, item.GetValue(Instance)));
+                else
+                    nodes.Add(new PtrNodeValue(item, curPtr, item.GetValue(Instance), attrBinding.TypeBind));
+                ++ptr;
             }
             foreach (var item in fields)
             {
                 if (!item.IsPublic || item.IsInitOnly)
                     continue;
-                var attrNoPtr = item.GetCustomAttribute<NoPointerAttribute>();
+                var attrNoPtr = item.GetCustomAttribute<NotSerializeAttribute>();
                 if (attrNoPtr != null)
                     continue;
+                var attrBinding = item.GetCustomAttribute<TypeBindingAttribute>();
                 int curPtr = ptr;
-                var attrPtr = item.GetCustomAttribute<PointerAttribute>();
-                if (attrPtr != null)
-                {
-                    curPtr = attrPtr.Ptr;
-                    if (pointers.Contains(curPtr))
-                        throw new ArgumentException($"The pointer '{curPtr}' specified in the 'PointerAttribute' attribute in a '{InstanceType.FullName}' object has been used for marking up several times.");
-                }
-                pointers.Add(curPtr);
-                nodes.Add(new PtrNodeValue(item, curPtr, item.GetValue(Instance)));
-                ptr = ExcludePtr(++ptr, pointers);
+                if (attrBinding == null)
+                    nodes.Add(new PtrNodeValue(item, curPtr, item.GetValue(Instance)));
+                else
+                    nodes.Add(new PtrNodeValue(item, curPtr, item.GetValue(Instance), attrBinding.TypeBind));
+                ++ptr;
             }
             return nodes.ToArray();
-        }
-        private static int ExcludePtr(int ptr, IEnumerable<int> exclPtr)
-        {
-            if(exclPtr.Contains(ptr))
-            {
-                ptr = ptr + 1;
-                return ExcludePtr(ptr, exclPtr);
-            }
-            else
-                return ptr;
         }
         public static PtrNode[] Inspect(Type objType)
         {
@@ -81,44 +62,35 @@ namespace wbinary.Core
 
             var fields = objType.GetFields();
             var properties = objType.GetProperties();
-            var pointers = new List<int>();
             int ptr = 0;
             foreach (var item in properties)
             {
                 if (!item.CanWrite || !item.CanRead)
                     continue;
-                var attrNoPtr = item.GetCustomAttribute<NoPointerAttribute>();
+                var attrNoPtr = item.GetCustomAttribute<NotSerializeAttribute>();
                 if (attrNoPtr != null)
                     continue;
+                var attrBinding = item.GetCustomAttribute<TypeBindingAttribute>();
                 int curPtr = ptr;
-                var attrPtr = item.GetCustomAttribute<PointerAttribute>();
-                if (attrPtr != null)
-                {
-                    curPtr = attrPtr.Ptr;
-                    if (pointers.Contains(curPtr))
-                        throw new ArgumentException($"The pointer '{curPtr}' specified in the 'PointerAttribute' attribute in a '{objType.FullName}' object has been used for marking up several times.");
-                    pointers.Add(curPtr);
-                }
-                nodes.Add(new PtrNode(item, curPtr));
+                if (attrBinding == null)
+                    nodes.Add(new PtrNode(item, curPtr));
+                else
+                    nodes.Add(new PtrNode(item, curPtr, attrBinding.TypeBind));
                 ptr++;
             }
             foreach (var item in fields)
             {
                 if (!item.IsPublic || item.IsInitOnly)
                     continue;
-                var attrNoPtr = item.GetCustomAttribute<NoPointerAttribute>();
+                var attrNoPtr = item.GetCustomAttribute<NotSerializeAttribute>();
                 if (attrNoPtr != null)
                     continue;
+                var attrBinding = item.GetCustomAttribute<TypeBindingAttribute>();
                 int curPtr = ptr;
-                var attrPtr = item.GetCustomAttribute<PointerAttribute>();
-                if (attrPtr != null)
-                {
-                    curPtr = attrPtr.Ptr;
-                    if (pointers.Contains(curPtr))
-                        throw new ArgumentException($"The pointer '{curPtr}' specified in the 'PointerAttribute' attribute in a '{objType.FullName}' object has been used for marking up several times.");
-                    pointers.Add(curPtr);
-                }
-                nodes.Add(new PtrNode(item, curPtr));
+                if (attrBinding == null)
+                    nodes.Add(new PtrNode(item, curPtr));
+                else
+                    nodes.Add(new PtrNode(item, curPtr, attrBinding.TypeBind));
                 ptr++;
             }
 
@@ -129,7 +101,7 @@ namespace wbinary.Core
     public class PtrNode
     {
         public int Ptr { get; internal set; }
-        public Type ValueType { get; internal set; }
+        public Type ObjectType { get; internal set; }
         internal MemberInfo Source { get; set; }
         public PtrNode(MemberInfo source, int ptr)
         {
@@ -137,14 +109,20 @@ namespace wbinary.Core
             Source = source;
             if (source is PropertyInfo)
             {
-                ValueType = ((PropertyInfo)source).PropertyType;
+                ObjectType = ((PropertyInfo)source).PropertyType;
             }
             else if (source is FieldInfo)
             {
-                ValueType = ((FieldInfo)source).FieldType;
+                ObjectType = ((FieldInfo)source).FieldType;
             }
             else
                 throw new ArgumentException("Only a property or a field can be accepted as a MemberInfo.");
+        }
+        public PtrNode(MemberInfo source, int ptr, Type type)
+        {
+            Ptr = ptr;
+            Source = source;
+            ObjectType = type;
         }
         public object? GetValue(object instance)
         {
@@ -177,6 +155,10 @@ namespace wbinary.Core
     {
         public object? Value { get; }
         public PtrNodeValue(MemberInfo source, int ptr, object? value) : base(source, ptr)
+        {
+            Value = value;
+        }
+        public PtrNodeValue(MemberInfo source, int ptr, object? value, Type type) : base(source, ptr, type)
         {
             Value = value;
         }
