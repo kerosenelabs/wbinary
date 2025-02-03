@@ -22,7 +22,7 @@
     }
     public class ArrEnumerableClass
     {
-        [TypeBinding(typeof(string[]))]
+        [TypeBinding<string[]>] // <-- this FOR .NET 8 or greater !!!!!!
         public IEnumerable<string> Numerable { get; set; }
     }
 
