@@ -10,6 +10,6 @@ namespace QuickC.Core
     internal static class Vnfo
     {
         public static byte Major => 1;
-        public static byte Minor => 0;
+        public static byte Minor => 1;
     }
 }

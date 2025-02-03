@@ -14,8 +14,8 @@
     <PackageIcon>liblogo.png</PackageIcon>
     <PackageTags>binary, formatter, binaryformatter, quickc, quickconvert, wbinary</PackageTags>
     <PackageOutputPath>$(OutputPath)</PackageOutputPath>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-	<VersionPrefix>1.0</VersionPrefix>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+	<VersionPrefix>1.1</VersionPrefix>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageReleaseNotes>Renamed from wbinary to QuickC, removed the pointer subsystem from all objects, optimized the headers, optimized a serialized structure, and etc.  </PackageReleaseNotes>
