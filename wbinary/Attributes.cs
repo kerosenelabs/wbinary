@@ -16,7 +16,6 @@ namespace QuickC
     public class NotSerializeAttribute : Attribute
     {
     }
-
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public class TypeBindingAttribute : Attribute
     {
@@ -28,4 +27,13 @@ namespace QuickC
             TypeBind = type;
         }
     }
+#if NET8_0_OR_GREATER
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+    public class TypeBindingAttribute<T> : TypeBindingAttribute
+    {
+        public TypeBindingAttribute() : base(typeof(T))
+        {
+        }
+    }
+#endif
 }

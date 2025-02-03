@@ -28,8 +28,8 @@ namespace ConsoleApp1
             //Console.WriteLine("\r\ntest buffering object | Tom :: 18");
             //TestBufferingObject();
 
-            //Console.WriteLine("\r\ntest type binding to interfaces and abstract classes | Array<string> to IEnumerable<string> as List<string>");
-            //TestTypeBinding();
+            Console.WriteLine("\r\ntest type binding to interfaces and abstract classes | Array<string> to IEnumerable<string> as List<string>");
+            TestTypeBinding();
 
             Console.WriteLine("\r\ntest enumerables | one two three");
             TestEnumerables();
@@ -210,7 +210,7 @@ namespace ConsoleApp1
     }
     public class ArrEnumerableClass
     {
-        [TypeBinding(typeof(string[]))]
+        [TypeBinding<string[]>]
         public IEnumerable<string> Numerable { get; set; }
     }
 }
