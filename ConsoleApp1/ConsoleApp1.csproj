@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Atypical.VirtualFileSystem" Version="0.3.0" />
+    <PackageReference Include="SharpFileSystem" Version="1.0.0.37" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\wbinary\QuickC.csproj" />
   </ItemGroup>
 

@@ -12,7 +12,7 @@ namespace QuickC
     /// <summary>
     /// Not considered when buffering
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Class | AttributeTargets.Struct)]
     public class NotSerializeAttribute : Attribute
     {
     }

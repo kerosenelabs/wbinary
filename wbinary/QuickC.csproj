@@ -14,15 +14,16 @@
     <PackageIcon>liblogo.png</PackageIcon>
     <PackageTags>binary, formatter, binaryformatter, quickc, quickconvert, wbinary</PackageTags>
     <PackageOutputPath>$(OutputPath)</PackageOutputPath>
-    <AssemblyVersion>1.1.0.0</AssemblyVersion>
-	<VersionPrefix>1.1</VersionPrefix>
+    <AssemblyVersion>1.3.0.0</AssemblyVersion>
+	<VersionPrefix>1.3</VersionPrefix>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageReleaseNotes>Renamed from wbinary to QuickC, removed the pointer subsystem from all objects, optimized the headers, optimized a serialized structure, and etc.  </PackageReleaseNotes>
+	<AotAssemblies>true</AotAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\liblogo.png">
+    <None Include="..\..\..\liblogo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

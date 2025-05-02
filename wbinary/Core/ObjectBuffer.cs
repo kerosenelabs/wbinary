@@ -12,7 +12,7 @@ namespace QuickC.Core
         private int _value = 0;
         public int ReadIndex => _value;
         internal List<byte[]> Buffer = new List<byte[]>();
-        internal BinaryVar this[int index]
+        public BinaryVar this[int index]
         {
             get
             {

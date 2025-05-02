@@ -3,9 +3,12 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text;
+using Atypical.VirtualFileSystem.Core;
 using QuickC;
 using QuickC.Abstract;
 using QuickC.Core;
+using QuickC.StorageEmulator;
 
 namespace ConsoleApp1
 {
@@ -34,6 +37,10 @@ namespace ConsoleApp1
             Console.WriteLine("\r\ntest enumerables | one two three");
             TestEnumerables();
             TestVersionWrite();
+
+            Console.WriteLine("\r\ntest VFS");
+            TestEmulatedStorage();
+
             Console.ReadKey(true);
         }
         static void TestTypeBinding()
@@ -164,6 +171,16 @@ namespace ConsoleApp1
             //File.WriteAllBytes("txt.t", QC.Serialize(rx));
 
             //var tx = QC.Deserialize<List<int>>(File.ReadAllBytes("txt.t"));
+        }
+
+        static void TestEmulatedStorage()
+        {
+            VirtualStorage f = new VirtualStorage("test.zip");
+            //f.Directory.CreateDirectory("test/second/third");
+            //f.File.WriteAllText("test/second/test.txt", "texts");
+            //f.File.WriteAllBytes("test", Array.Empty<byte>());
+            f.Directory.Exist("test");
+            //f.Directory.Delete("test/second/third");
         }
     }
 
